@@ -6,8 +6,9 @@ import Utils.RequestUtils;
 
 import java.io.*;
 import java.net.Socket;
+import java.util.zip.GZIPOutputStream;
 
-public class RequestHandler implements Runnable{
+public class RequestHandler implements Runnable {
     protected int clientId;
     protected Socket clientSocket;
     protected Request request;
@@ -24,17 +25,33 @@ public class RequestHandler implements Runnable{
         BufferedReader reader = null;
         try {
             writer = new PrintWriter(clientSocket.getOutputStream());
+            OutputStream outputStream = clientSocket.getOutputStream();
             Response response = RequestUtils.handleRequest(request);
-            System.out.println(response);
-            RequestUtils.printResponse(writer, response);
+            if (RequestUtils.isEcho(RequestUtils.getPath(request.getRequestLine())) && RequestUtils.containsGZIPHeader(request.getHeaders().get("Accept-Encoding"))) {
+                String echoStr = response.getResponse();
+                ByteArrayOutputStream byteArrayOutputStream =
+                        new ByteArrayOutputStream();
+                try (GZIPOutputStream gzipOutputStream =
+                             new GZIPOutputStream(byteArrayOutputStream)) {
+                    gzipOutputStream.write(response.getResponse().getBytes("UTF-8"));
+                }
+                byte[] gzipData = byteArrayOutputStream.toByteArray();
+                String httpResponse =
+                        "HTTP/1.1 200 OK\r\nContent-Encoding: gzip\r\nContent-Type: text/plain\r\nContent-Length: " +
+                gzipData.length + "\r\n\r\n";
+                outputStream.write(httpResponse.getBytes("UTF-8"));
+                outputStream.write(gzipData);
+            } else {
+                RequestUtils.printResponse(writer, response);
+            }
             writer.flush();
         } catch (IOException e) {
             throw new RuntimeException(e);
         } finally {
             try {
                 writer.close();
-                clientSocket.close();
                 reader.close();
+                clientSocket.close();
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }

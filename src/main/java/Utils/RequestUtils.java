@@ -3,10 +3,10 @@ package Utils;
 import Models.Request;
 import Models.Response;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.PrintWriter;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.zip.GZIPOutputStream;
 
 public class RequestUtils {
 
@@ -36,7 +36,7 @@ public class RequestUtils {
             }
         }
         String requestBody = null;
-        if(headers.containsKey("Content-Length")) {
+        if (headers.containsKey("Content-Length")) {
             int bodyLength = Integer.parseInt(headers.get("Content-Length"));
             char[] buffer = new char[bodyLength];
             reader.read(buffer, 0, bodyLength);
@@ -73,23 +73,40 @@ public class RequestUtils {
         }
     }
 
-    private static boolean containsGZIPHeader(String requestedCompressions) {
-        if(requestedCompressions == null) return false;
+    private static String compressString(String inputString) {
+        if (inputString == null)
+            return null;
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        try (GZIPOutputStream gzipOutputStream = new GZIPOutputStream(byteArrayOutputStream)) {
+            gzipOutputStream.write(inputString.getBytes("UTF-8"));
+        } catch (Exception e) {
+            return null;
+        }
+        byte[] responseArray = byteArrayOutputStream.toByteArray();
+        System.out.println("length is:" + responseArray.length);
+        return new String(responseArray, 0, responseArray.length);
+    }
+
+    public static boolean containsGZIPHeader(String requestedCompressions) {
+        if (requestedCompressions == null) return false;
         String[] acceptableCompressionArray = requestedCompressions.split(",");
-        for(String compressionType:acceptableCompressionArray) {
-            if(compressionType.trim().equals("gzip")) {
+        for (String compressionType : acceptableCompressionArray) {
+            if (compressionType.trim().equals("gzip")) {
                 return true;
             }
         }
         return false;
     }
 
-    public static void printResponse(PrintWriter writer, Response response) {
+    public static void printResponse(PrintWriter writer, Response response) throws IOException {
+        printResponse(writer, response, false, null);
+    }
+    public static void printResponse(PrintWriter writer, Response response, boolean isCompressed, OutputStream outputStream) throws IOException {
         if (response == null || response.getStatusCode() == 404) {
             writer.println(INVALID_RESOURCE);
             return;
         }
-        writer.print("HTTP/1.1 " +  response.getStatusCode()+" " + response.getReason());
+        writer.print("HTTP/1.1 " + response.getStatusCode() + " " + response.getReason());
         writer.print(CRNF);
         if (response.getHeaders() != null) {
             for (Map.Entry<String, String> entrySet : response.getHeaders().entrySet()) {
@@ -99,7 +116,14 @@ public class RequestUtils {
             }
         }
         writer.print(CRNF);
-        if (response.getResponse() != null) writer.print(response.getResponse());
+        if (response.getResponse() != null && !isCompressed){
+            writer.print(response.getResponse());
+        }
+        writer.flush();
+        if(isCompressed) {
+            outputStream.write(response.getResponse().getBytes("UTF-8"));
+            outputStream.flush();
+        }
     }
 
     public static String getPath(String requestLine) {
@@ -109,12 +133,12 @@ public class RequestUtils {
 
     public static String getHttpMethod(String path) {
         String[] requestLine = path.split(" ");
-        if(requestLine.length != 3) throw new RuntimeException("path is Improper");
+        if (requestLine.length != 3) throw new RuntimeException("path is Improper");
         return requestLine[0];
 
     }
 
-    private static boolean isEcho(String path) {
+    public static boolean isEcho(String path) {
         if (Arrays.stream(path.split("/")).count() > 0) {
             return path.split("/")[1].equals("echo");
         }
