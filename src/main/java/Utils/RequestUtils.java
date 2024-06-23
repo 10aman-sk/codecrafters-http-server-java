@@ -54,6 +54,9 @@ public class RequestUtils {
             return new Response(200, null, null);
         } else if (isEcho(path)) {
             String responseString = getString(path);
+            if(request.getHeaders().containsKey("Accept-Encoding") && request.getHeaders().get("Accept-Encoding").equals("gzip")) {
+                headers.put("Content-Encoding", "gzip");
+            }
             Response response = new Response(200, headers, responseString);
             response.addHeader("Content-Length", String.valueOf(responseString.length()));
             System.out.println(response);
