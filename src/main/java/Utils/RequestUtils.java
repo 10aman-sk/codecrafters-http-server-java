@@ -54,7 +54,7 @@ public class RequestUtils {
             return new Response(200, null, null);
         } else if (isEcho(path)) {
             String responseString = getString(path);
-            if(request.getHeaders().containsKey("Accept-Encoding") && request.getHeaders().get("Accept-Encoding").equals("gzip")) {
+            if(containsGZIPHeader(request.getHeaders().get("Accept-Encoding"))) {
                 headers.put("Content-Encoding", "gzip");
             }
             Response response = new Response(200, headers, responseString);
@@ -71,6 +71,17 @@ public class RequestUtils {
             Response response = new Response(404, null, null);
             return response;
         }
+    }
+
+    private static boolean containsGZIPHeader(String requestedCompressions) {
+        if(requestedCompressions == null) return false;
+        String[] acceptableCompressionArray = requestedCompressions.split(",");
+        for(String compressionType:acceptableCompressionArray) {
+            if(compressionType.trim().equals("gzip")) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static void printResponse(PrintWriter writer, Response response) {
