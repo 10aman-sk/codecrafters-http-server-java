@@ -1,5 +1,6 @@
 import Models.Request;
-import Models.Response;
+import RequestHandlers.RequestHandler;
+import RequestHandlers.RequestHandlerFactory;
 import Utils.RequestUtils;
 
 import java.io.*;
@@ -11,6 +12,7 @@ import java.util.concurrent.Executors;
 public class Main {
     public static final int NUMBER_OF_THREADS = 8;
     private static int currentClientID = 0;
+
     public static void main(String[] args) throws IOException {
         ServerSocket serverSocket = null;
         Socket clientSocket = null;
@@ -19,10 +21,13 @@ public class Main {
         ExecutorService executorService = Executors.newFixedThreadPool(NUMBER_OF_THREADS);
         try {
             serverSocket = new ServerSocket(4221);
-            while(true) {
+            while (true) {
                 serverSocket.setReuseAddress(true);
                 clientSocket = serverSocket.accept();
-                executorService.submit(new RequestHandler(currentClientID++, clientSocket));
+                reader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+                Request request = RequestUtils.constructRequest(reader);
+                System.out.println(request.toString());
+                executorService.submit(RequestHandlerFactory.getRequestHandler(clientSocket, request, args));
             }
         } catch (Exception e) {
             System.out.println("IOException: " + e.getMessage());

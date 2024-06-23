@@ -12,7 +12,7 @@ public class RequestUtils {
 
     private static final String INVALID_RESOURCE = "HTTP/1.1 404 Not Found\r\n\r\n";
     private static final String CRNF = "\r\n";
-    private static final String  USER_AGENT = "User-Agent";
+    private static final String USER_AGENT = "User-Agent";
 
     public static Request constructRequest(BufferedReader reader) throws IOException {
         List<String> lines = new ArrayList<>();
@@ -56,7 +56,7 @@ public class RequestUtils {
             response.addHeader("Content-Length", String.valueOf(responseString.length()));
             System.out.println(response);
             return response;
-        }else {
+        } else {
             Response response = new Response(404, null, null);
             return response;
         }
@@ -77,10 +77,10 @@ public class RequestUtils {
             }
         }
         writer.print(CRNF);
-        if(response.getResponse() != null) writer.print(response.getResponse());
+        if (response.getResponse() != null) writer.print(response.getResponse());
     }
 
-    private static String getPath(String requestLine) {
+    public static String getPath(String requestLine) {
 
         return requestLine.split(" ")[1];
     }
@@ -92,11 +92,18 @@ public class RequestUtils {
         return false;
     }
 
+    public static boolean isFile(String path) {
+        if (Arrays.stream(path.split("/")).count() > 0) {
+            return path.split("/")[1].equals("files");
+        }
+        return false;
+    }
+
     private static boolean isUserAgent(Map<String, String> headers) {
         return headers.containsKey(USER_AGENT);
     }
 
-    private static String getString(String path) {
+    public static String getString(String path) {
         return path.split("/")[2];
     }
 }

@@ -1,3 +1,5 @@
+package RequestHandlers;
+
 import Models.Request;
 import Models.Response;
 import Utils.RequestUtils;
@@ -6,12 +8,14 @@ import java.io.*;
 import java.net.Socket;
 
 public class RequestHandler implements Runnable{
-    private int clientId;
-    private Socket clientSocket;
+    protected int clientId;
+    protected Socket clientSocket;
+    protected Request request;
 
-    public RequestHandler(int clientId, Socket clientSocket) {
+    public RequestHandler(int clientId, Socket clientSocket, Request request) {
         this.clientId = clientId;
         this.clientSocket = clientSocket;
+        this.request = request;
     }
 
     @Override
@@ -20,9 +24,6 @@ public class RequestHandler implements Runnable{
         BufferedReader reader = null;
         try {
             writer = new PrintWriter(clientSocket.getOutputStream());
-            reader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-            Request request = RequestUtils.constructRequest(reader);
-            System.out.println(request.toString());
             Response response = RequestUtils.handleRequest(request);
             System.out.println(response);
             RequestUtils.printResponse(writer, response);
@@ -32,8 +33,8 @@ public class RequestHandler implements Runnable{
         } finally {
             try {
                 writer.close();
-                reader.close();
                 clientSocket.close();
+                reader.close();
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }

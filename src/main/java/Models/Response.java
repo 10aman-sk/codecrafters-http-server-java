@@ -28,4 +28,13 @@ public class Response {
     public String getResponse() {
         return response;
     }
+
+    @Override
+    public String toString() {
+        return "Response{" +
+                "statusCode=" + statusCode +
+                ", headers=" + headers +
+                ", response='" + response + '\'' +
+                '}';
+    }
 }
