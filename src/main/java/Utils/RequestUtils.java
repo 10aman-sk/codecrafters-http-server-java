@@ -30,11 +30,19 @@ public class RequestUtils {
         Map<String, String> headers = new HashMap<>();
         for (int i = 1; i < lines.size(); i++) {
             String[] headerSplits = lines.get(i).split(":");
+            System.out.println(lines.get(i));
             if (headerSplits.length == 2) {
                 headers.put(headerSplits[0].trim(), headerSplits[1].trim());
             }
         }
-        return new Request(requestLine, headers, null);
+        String requestBody = null;
+        if(headers.containsKey("Content-Length")) {
+            int bodyLength = Integer.parseInt(headers.get("Content-Length"));
+            char[] buffer = new char[bodyLength];
+            reader.read(buffer, 0, bodyLength);
+            requestBody = String.valueOf(buffer);
+        }
+        return new Request(requestLine, headers, requestBody);
     }
 
     public static Response handleRequest(Request request) {
@@ -67,7 +75,7 @@ public class RequestUtils {
             writer.println(INVALID_RESOURCE);
             return;
         }
-        writer.print("HTTP/1.1 200 OK");
+        writer.print("HTTP/1.1 " +  response.getStatusCode()+" " + response.getReason());
         writer.print(CRNF);
         if (response.getHeaders() != null) {
             for (Map.Entry<String, String> entrySet : response.getHeaders().entrySet()) {
@@ -83,6 +91,13 @@ public class RequestUtils {
     public static String getPath(String requestLine) {
 
         return requestLine.split(" ")[1];
+    }
+
+    public static String getHttpMethod(String path) {
+        String[] requestLine = path.split(" ");
+        if(requestLine.length != 3) throw new RuntimeException("path is Improper");
+        return requestLine[0];
+
     }
 
     private static boolean isEcho(String path) {

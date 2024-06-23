@@ -22,6 +22,43 @@ public class FileRequestHandlerImpl extends RequestHandler {
 
     @Override
     public void run() {
+        String httpCallType = RequestUtils.getHttpMethod(request.getRequestLine());
+        if(httpCallType.equals("GET")) {
+            processGetRequest();
+            return;
+        }
+        processPutRequest();
+    }
+
+    private void processPutRequest() {
+        String requestPath = RequestUtils.getPath(request.getRequestLine());
+        String absoluteFilePath = directory + RequestUtils.getString(requestPath);
+        Path filePath = Path.of(absoluteFilePath);
+        PrintWriter writer = null;
+        try {
+            writer = new PrintWriter(clientSocket.getOutputStream());
+            // write content to file
+            System.out.println(request);
+            try {
+                Files.writeString(filePath, request.getBody());
+            } catch (Exception e) {
+                System.out.println(e);
+            }
+            Response response = new Response(201, null, null, "Created");
+            RequestUtils.printResponse(writer, response);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        } finally {
+            writer.close();
+            try {
+                clientSocket.close();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    private void processGetRequest() {
         String requestPath = RequestUtils.getPath(request.getRequestLine());
         String absoluteFilePath = directory + RequestUtils.getString(requestPath);
         Path filePath = Path.of(absoluteFilePath);
